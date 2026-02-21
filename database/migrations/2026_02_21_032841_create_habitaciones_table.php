@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('staff_hotel', function (Blueprint $table) {
+        Schema::create('habitaciones', function (Blueprint $table) {
             $table->id();
-            $table->enum('rol',['AH','R']);
-            $table->date('fecha_asignacion');
-            $table->boolean('estado')->default(true);
+            $table->string('nombre',250);
+            $table->string('estado',50);
+            $table->integer('num_habitacion');
+            $table->decimal('precio');
+            $table->integer('capacidad');
+            $table->foreignId('tipo_habitacion_id')->constrained('tipo_habitaciones');
             $table->foreignId('hotel_id')->constrained('hoteles');
-            $table->foreignId('user_id')->constrained();
-            $table->timestamps();
+            $table->timestamps();   
         });
     }
 
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('staff_hotel');
+        Schema::dropIfExists('habitaciones');
     }
 };
