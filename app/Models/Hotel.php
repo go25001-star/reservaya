@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hotel extends Model
 {
@@ -22,8 +23,8 @@ class Hotel extends Model
     'telefono3',
     ];
 
-    public function staff_hotel ()
+    public function staff_hotel ():HasMany
     {
-        return $this->hasMany(staff_hotel::class, 'hotel_id');
+        return $this->hasMany(staff_hotel::class);
     }
 }
