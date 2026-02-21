@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Facrories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffHotel extends Model
 {
@@ -23,13 +24,13 @@ class StaffHotel extends Model
         'fecha_asignacion' => 'date',
     ];
 
-    public function hotel()
+    public function hotel():BelongsTo
     {
-        return $this->belongsTo(Hotel::class, 'hotel_id');
+        return $this->belongsTo(Hotel::class);
     }
 
-    public function user()
+    public function user():BelongsTo
     {
-        return $this->belongsTo(User::class, 'usuario_id');
+        return $this->belongsTo(User::class);
     }
 }
