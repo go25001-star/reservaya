@@ -12,19 +12,18 @@ class Habitacion extends Model
 
     protected $fillable = [
         'nombre_habitacion',
-        'descripcion',
         'estado',
         'num_habitacion',
         'precio',
         'capacidad',
-        'tipo_habitaciones_id',
+        'tipo_habitacion_id',
         'hotel_id',
     ];
 
     
     public function tipoHabitacion(): BelongsTo
     {
-        return $this->belongsTo(TipoHabitacion::class, 'tipo_habitaciones_id');
+        return $this->belongsTo(TipoHabitacion::class, 'tipo_habitacion_id');
     }
 
     

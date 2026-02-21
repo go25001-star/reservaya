@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TipoHabitacion extends Model
 {
-    protected $table = 'tipo_habitaciones';
+    protected $table = 'tipo_habitacion';
 
     protected $fillable = [
         'nombre',
@@ -17,6 +17,6 @@ class TipoHabitacion extends Model
 
     public function habitaciones(): HasMany
     {
-        return $this->hasMany(Habitacion::class, 'tipo_habitaciones_id');
+        return $this->hasMany(Habitacion::class, 'tipo_habitacion_id');
     }
 }
