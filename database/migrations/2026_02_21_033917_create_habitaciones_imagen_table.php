@@ -11,13 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('staff_hotel', function (Blueprint $table) {
+        Schema::create('habitaciones_imagen', function (Blueprint $table) {
             $table->id();
-            $table->enum('rol',['AH','R']);
-            $table->date('fecha_asignacion');
-            $table->boolean('estado')->default(true);
-            $table->foreignId('hotel_id')->constrained('hoteles');
-            $table->foreignId('user_id')->constrained();
+            $table->string('url', 300)->nullable();
+            $table->foreignId('habitacion_id')->constrained('habitaciones');
             $table->timestamps();
         });
     }
@@ -27,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('staff_hotel');
+        Schema::dropIfExists('habitaciones_imagen');
     }
 };
