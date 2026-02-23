@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hotel extends Model
 {
-    use HasFactory;
-
+    
     protected $table = 'hoteles';
     
     protected $fillable = [
@@ -25,6 +24,10 @@ class Hotel extends Model
 
     public function staff_hotel ():HasMany
     {
-        return $this->hasMany(staff_hotel::class);
+        return $this->hasMany(staffHotel::class);
+    }
+
+    public function habitaciones():HasMany{
+        return $this->hasMany(Habitacion::class);
     }
 }
