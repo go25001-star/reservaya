@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('telefono',25);
             $table->string('telefono2',25)->nullable();
             $table->string('telefono3',25)->nullable();
-            $table->bool('estado')->default(true);
+            $table->boolean('estado')->default(true);
             $table->timestamps();
         });
     }
