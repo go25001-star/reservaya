@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffHotel extends Model
 {
-    use HasFactory;
+
 
     protected $table = 'staff_hotel';
 
@@ -17,7 +17,7 @@ class StaffHotel extends Model
         'fecha_asignacion',
         'estado',
         'hotel_id',
-        'usuario_id',
+        'user_id',
     ];
     protected $casts = [
         'estado' => 'boolean',
