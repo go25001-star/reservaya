@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hotel extends Model
 {
-    use HasFactory;
-
+    
     protected $table = 'hoteles';
     
     protected $fillable = [

@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\HotelController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
