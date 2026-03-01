@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tipo_habitaciones', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 250);
+            $table->string('nombre', 250)->unique();
             $table->text('descripcion')->nullable();
             $table->foreignId('hotel_id')->constrained('hoteles');
             $table->timestamps();
