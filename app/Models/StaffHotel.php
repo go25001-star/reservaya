@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Facrories\HasFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;//por lo que sale modificado es por qeu avia un error de sintaxis
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,7 +17,7 @@ class StaffHotel extends Model
         'fecha_asignacion',
         'estado',
         'hotel_id',
-        'usuario_id',
+        'user_id',
     ];
     protected $casts = [
         'estado' => 'boolean',
