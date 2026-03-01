@@ -24,10 +24,6 @@ class Hotel extends Model
 
     public function staff_hotel ():HasMany
     {
-        return $this->hasMany(staffHotel::class);
-    }
-
-    public function habitaciones():HasMany{
-        return $this->hasMany(Habitacion::class);
+        return $this->hasMany(StaffHotel::class);
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StaffHotel extends Model
 {
-    use HasFactory;
+
 
     protected $table = 'staff_hotel';
 
