@@ -1,6 +1,6 @@
-php<?php
+<?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Models\TipoHabitacion;
 use Illuminate\Http\Request;
@@ -11,9 +11,9 @@ class TipoHabitacionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index($hoteId)
     {
-        $hotel = Hotel ::with('tiposHabitacion')->find($hoteld);
+        $hotel = Hotel ::with('tiposHabitacion')->find($hoteId);
 
     if (!$hotel) {
         return response()->json([

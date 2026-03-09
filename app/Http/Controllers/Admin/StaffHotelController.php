@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Models\Hotel;
 use App\Models\StaffHotel;
 use App\Models\User;
-use Illuminate\Auth\Events\Validated;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
 
 class StaffHotelController extends Controller
 {
@@ -30,13 +30,13 @@ class StaffHotelController extends Controller
             return response()->json([
                 'status'=> 'error',
                 'message'=> 'No se encontro el hotel'
-            ],404);//el 404 es para decir un error qeu no se sencontro registro
+            ],404);//el 404 es para decir un error que no se sencontro registro
         }
         catch(\Exception $e){//es para designar un error global
             return response()->json([
                 'status'=> 'error',
                 'message'=> 'Error interno de el servidor'
-            ],500);//es solamente para un error de servidor qeu se utiliza el 500
+            ],500);//es solamente para un error de servidor que se utiliza el 500
         }
     }
 
@@ -72,7 +72,7 @@ class StaffHotelController extends Controller
            'user_id' => $user->id,
         ]);
         DB::commit();
-        $staff->load([//nota personal el load es para cargar una parte espesifica de la tabla 
+        $staff->load([//nota personal el load es para cargar una parte especifica de la tabla 
             'hotel:id,nombre',
             'user:id,name'
         ]); 
