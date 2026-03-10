@@ -22,7 +22,7 @@ class Hotel extends Model
     'telefono3',
     ];
 
-    public function staff_hotel ():HasMany
+    public function staffHotels ():HasMany
     {
         return $this->hasMany(StaffHotel::class);
     }

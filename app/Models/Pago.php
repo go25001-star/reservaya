@@ -10,7 +10,8 @@ class Pago extends Model
    protected $fillable = [
       'fecha_pago',
       'cantidad',
-      'tipo_pago'
+      'tipo_pago',
+      'reserva_id'
    ];
 
    protected $casts = [

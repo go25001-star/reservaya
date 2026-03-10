@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('staff_hotel', function (Blueprint $table) {
             $table->id();
-            $table->enum('rol', ['P','G','R','UA']);//canbiar U por P = propietario
             $table->date('fecha_asignacion');
+            $table->string('rol',25);
             $table->boolean('estado')->default(true);
             $table->foreignId('hotel_id')->constrained('hoteles');
             $table->foreignId('user_id')->constrained();
