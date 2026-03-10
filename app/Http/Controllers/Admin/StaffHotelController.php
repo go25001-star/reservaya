@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RolEnum;
+use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Models\StaffHotel;
 use App\Models\User;
@@ -9,115 +11,166 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use App\Http\Controllers\Controller;
 
 class StaffHotelController extends Controller
 {
-    
-    public function index()//aqui va a ir el id de el hotel
+    public function index(string $id)// aqui va a ir el id de el hotel
     {
-        try{
-            $staff = Hotel::findOrFail(1)//aqui va a ir el id de el hotel
-            ->staff_hotel()
-            ->get();
-             return response()->json([
-                'status'=> 'ok',//esta condicion te enviara qeu todo esta bien 
-                'data'=> $staff//devolvera toda la data del staff
+        try {
 
-            ],200);//signifa ok o todo bien 
+            $userAuthId = auth('api')->user()->id;
 
-        }catch(ModelNotFoundException $m){
+            $staffAuth = StaffHotel::where('user_id', $userAuthId)
+                ->where('hotel_id', $id)
+                ->select('rol')
+                ->firstOrFail();
+
+            $query = Hotel::findOrFail($id)->staffHotels()->with('user:id,name');
+
+            if ($staffAuth->rol === RolEnum::GERENTE->value) {
+
+                $query->where('rol', RolEnum::RECEPCIONISTA->value);
+
+            } elseif ($staffAuth->rol === RolEnum::PROPIETARIO->value) {
+
+                $query->whereIn('rol', [
+                    RolEnum::GERENTE->value,
+                    RolEnum::RECEPCIONISTA->value,
+                ]);
+
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permiso para ver a los trabajadores de este hotel',
+                ], 403);
+            }
+
+            $staff = $query->get();
+
             return response()->json([
-                'status'=> 'error',
-                'message'=> 'No se encontro el hotel'
-            ],404);//el 404 es para decir un error que no se sencontro registro
-        }
-        catch(\Exception $e){//es para designar un error global
+                'status' => 'ok',
+                'data' => $staff,
+            ], 200);
+
+        } catch (ModelNotFoundException $m) {
             return response()->json([
-                'status'=> 'error',
-                'message'=> 'Error interno de el servidor'
-            ],500);//es solamente para un error de servidor que se utiliza el 500
+                'status' => 'error',
+                'message' => 'No se encontro el hotel',
+            ], 404); // el 404 es para decir un error que no se se encontro el registro
+        } catch (\Exception $e) {// es para designar un error global
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno de el servidor',
+            ], 500); // es solamente para un error de servidor que se utiliza el 500
         }
     }
 
     /**
      * Store a newly created resource in storage.
      */
-  public function store(Request $request)
-   {$request->validate([
-        'hotel_id' => 'required|exists:hoteles,id',
+    public function store(Request $request)
+    {
 
-        'name' => 'required|string|max:191',
-        'email' => 'required|email|unique:users,email',
-        'password' => 'required|min:8',
+        try {
 
-        'rol' => 'required|in:P,G,R,UA',
-        'fecha_asignacion' => 'required|date',
-    ]);
+            $request->validate([
+                'hotel_id' => 'required|exists:hoteles,id',
 
-    DB::beginTransaction();
+                'name' => 'required|string|max:191',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|min:8',
 
-    try {
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+                'rol' => 'required|in:PROPIETARIO,GERENTE,RECEPCIONISTA',
+                'fecha_asignacion' => 'required|date',
+            ]);
 
-        $staff = StaffHotel::create([
-           'rol' => $request->rol,
-           'fecha_asignacion'=> $request->fecha_asignacion,
-           'estado' => true,
-           'hotel_id' => $request->hotel_id,
-           'user_id' => $user->id,
-        ]);
-        DB::commit();
-        $staff->load([//nota personal el load es para cargar una parte especifica de la tabla 
-            'hotel:id,nombre',
-            'user:id,name'
-        ]); 
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'Staff registrado correctamente',
-            'data' => $staff
-        ], 201);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error interno del servidor'
-        ], 500);
+            $userAuthId = auth('api')->id();
+
+            $staffAuth = StaffHotel::where('user_id', $userAuthId)
+                ->where('hotel_id', $request->hotel_id)
+                ->exists();
+
+            if (! $staffAuth) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permiso para registrar usuarios en este hotel',
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            $user->assignRole(RolEnum::USUARIOADMIN->value);
+
+            $user->assignRole(RolEnum::from($request->rol)->value);
+
+            $staff = StaffHotel::create([
+                'rol' => $request->rol,
+                'fecha_asignacion' => $request->fecha_asignacion,
+                'estado' => true,
+                'hotel_id' => $request->hotel_id,
+                'user_id' => $user->id,
+            ]);
+            DB::commit();
+            $staff->load([// nota personal el load es para cargar una parte especifica de la tabla
+                'hotel:id,nombre',
+                'user:id,name',
+            ]);
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Usuario del hotel registrado correctamente',
+                'data' => $staff,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
+
     }
 
-}
-
-  //pendiente de probar
     public function show(string $id)
     {
-       try {
-        
-        $staff = StaffHotel::with(['user'])->findOrFail($id);
+        try {
 
-        $staff->load([
-            'hotel:id,nombre',
-        ]); 
+            $userAuthId = auth('api')->id();
 
-        return response()->json([// en la parte de hotel quiero que me devuleva sdolo id y nombre 
-            'status' => 'ok',
-            'data' => $staff 
-        ], 200);
+            $userAuth = StaffHotel::where('user_id', $userAuthId)->firstOrFail();
 
-       } catch (ModelNotFoundException $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No se encontró el registro de staff'
-        ], 404);
+            $staff = StaffHotel::where('id', $id)
+                ->where('hotel_id', $userAuth->hotel_id)
+                ->firstOrFail();
+
+            $staff->load([
+                'user:id,name',
+                'hotel:id,nombre',
+            ]);
+
+            return response()->json([// en la parte de hotel quiero que me devuleva sdolo id y nombre
+                'status' => 'ok',
+                'data' => $staff,
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se encontró el registro de staff',
+            ], 404);
         } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error interno del servidor: ' . $e->getMessage()
-        ], 500);
-    }
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor: '.$e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -125,39 +178,56 @@ class StaffHotelController extends Controller
      */
     public function update(Request $request, string $id)
     {
-      //basio por que no se puede hascer un degrado de un nivel asi de brusco
+        // basio por que no se puede hascer un degrado de un nivel asi de brusco
     }
 
     /**
      * Remove the specified resource from storage.
      */
-   public function destroy(string $id)
-   {
-     try {
+    public function destroy(string $id)
+    {
+        try {
 
-        $staff = StaffHotel::findOrFail($id);
-        $staff->estado = false;//con esto solo desactivamos el estado de el staff registrado
-        $staff->save();
+            $userAuthId = auth('api')->id(); // Trae el id del usuario que esta logueado,
 
-        return response()->json([
-            'status' => 'ok',
-            'message' => 'estado desactivado correctamente',
-            'data' => $staff
-        ], 200);
+            $staffAuth = StaffHotel::where('user_id', $userAuthId)->firstOrFail(); // Verificamos los datos del usuario logueado sean los correctos con los guardaos en la BD
 
-    } catch (ModelNotFoundException $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No se encontró el registro de el usuario'
-        ], 404);
+            $staff = StaffHotel::findOrFail($id); // El usuario del hotel que vamos a desactivar;
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error interno del servidor'
-        ], 500);
+            if ((int) $staff->user_id === (int) $userAuthId) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No puedes desactivarte a ti mismo',
+                ], 403);
+            }
+
+            if ($staffAuth->hotel_id !== $staff->hotel_id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permiso para desactivar a este usuario',
+                ], 403);
+            }
+
+            $staff->estado = false;
+            $staff->save();
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Usuario desactivado correctamente',
+                'data' => $staff,
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se encontró el registro de el usuario',
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
     }
-   }
-   
- 
 }

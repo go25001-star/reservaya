@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\RolEnum;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -49,7 +50,7 @@ class AuthController extends Controller
         ]);
 
 
-        $user->assignRole('USUARIO');
+        $user->assignRole(RolEnum::USUARIO->value);
 
         $token= JWTAuth::fromUser($user);
 
