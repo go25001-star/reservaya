@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Models\StaffHotel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AdminHotelController extends Controller
 {
@@ -16,12 +17,33 @@ class AdminHotelController extends Controller
      */
     public function index()
     {
-        $hoteles = Hotel::where('estado', true)->get();
+        try {
 
-        return response()->json([
-            'message' => 'hoteles no encontrados',
-            'data' => $hoteles], 200);
+            $userAuthId = auth('api')->id();
 
+            $staffHotel = StaffHotel::where('user_id', $userAuthId)
+                ->where('estado', true)
+                ->with('hotel:id,nombre,imagen')
+                ->get();
+
+            if ($staffHotel->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se encontraron hoteles registrados ',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $staffHotel,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error Interno del Servidor',
+            ], 500);
+        }
     }
 
     /**
@@ -29,27 +51,32 @@ class AdminHotelController extends Controller
      */
     public function store(Request $request)
     {
+
+        $data = $request->validate([
+            'nombre' => 'required|string',
+            'descripcion' => 'required|string',
+            'direccion' => 'required|string',
+            'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'email' => 'required|email',
+            'telefono' => 'required|string',
+            'telefono2' => 'nullable|string',
+            'telefono3' => 'nullable|string',
+
+            // staff
+            'fecha_asignacion' => 'required|date',
+        ]);
+
         try {
 
-            $data = $request->validate([
-                'nombre' => 'required|string',
-                'descripcion' => 'required|string',
-                'direccion' => 'required|string',
-                'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-                'email' => 'required|email',
-                'telefono' => 'required|string',
-                'telefono2' => 'nullable|string',
-                'telefono3' => 'nullable|string',
-
-                // staff
-                'user_id' => 'required|integer|exists:users,id',
-                'rol' => 'required|string',
-                'fecha_asignacion' => 'required|date',
-                'estado' => 'required|boolean',
-
-            ]);
-
             DB::beginTransaction();
+
+            $user = auth('api')->user();
+
+            $userAuthId = $user->id;
+
+            if (! $user->hasRole(RolEnum::PROPIETARIO->value)) {
+                $user->assignRole(RolEnum::PROPIETARIO->value);
+            }
 
             $imagenPath = null;
             if ($request->hasFile('imagen')) {
@@ -69,26 +96,30 @@ class AdminHotelController extends Controller
 
             StaffHotel::create([
                 'hotel_id' => $hotel->id,
-                'user_id' => $data['user_id'],
-                'rol' => $data['rol'],
+                'user_id' => $userAuthId,
+                'rol' => RolEnum::PROPIETARIO->value,
                 'fecha_asignacion' => $data['fecha_asignacion'],
-                'estado' => $data['estado'],
+                'estado' => true,
             ]);
 
             DB::commit();
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Hotel creado exitosamente.',
-                'hotel' => $hotel->load('staff_hotel'),
-                'imagen' => $imagenPath,
+                'hotel' => $hotel->load('staff_hotel:id,hotel_id,user_id,rol'),
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
 
+            if ($imagenPath) {
+                Storage::disk('public')->delete($imagenPath);
+            }
+
             return response()->json([
-                'message' => 'Error al crear el hotel.',
-                'error' => $e->getMessage(),
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }
