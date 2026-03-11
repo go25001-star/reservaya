@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\Hotel;
+use App\Models\StaffHotel;
 use App\Models\TipoHabitacion;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -11,25 +13,43 @@ class TipoHabitacionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index($hoteId)
+    public function index($hotelId)
     {
-        $hotel = Hotel ::with('tiposHabitacion')->find($hoteId);
 
-    if (!$hotel) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Hotel no encontrado'
-        ], 404);
-    }
+        try {
+            $AuthUserId = auth('api')->id();
 
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'hotel_id' => $hotel->id,
-            'hotel_nombre' => $hotel->nombre,
-            'habitaciones' => $hotel->tiposHabitacion
-        ]
-    ], 200);
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                ->where('hotel_id', $hotelId)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permiso para ver los tipos de habitaciones de este hotel',
+                ], 403);
+            }
+
+            $tiposdeHabitaciones = Hotel::with('tiposHabitacion')->find($hotelId);
+
+            if (! $tiposdeHabitaciones) {
+                return response()->json([
+                    'success' => 'error',
+                    'message' => 'Hotel no encontrado',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'ok',
+                'data' => $tiposdeHabitaciones,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
     }
 
     /**
@@ -37,36 +57,52 @@ class TipoHabitacionController extends Controller
      */
     public function store(Request $request)
     {
+          $request->validate([
+                'nombre' => 'required|string|max:250',
+                'descripcion' => 'nullable|string',
+                'hotel_id' => 'required|integer|exists:hoteles,id',
+            ]);
+
         try {
-        $request->validate([
-            'nombre'      => 'required|string|max:250',
-            'descripcion' => 'string',
-            'hotel_id'    => 'required|integer|exists:hoteles,id'
-        ]);
 
-        $tipo = TipoHabitacion::create([
-            'nombre'      => $request->nombre,
-            'descripcion' => $request->descripcion,
-            'hotel_id'    => $request->hotel_id
-        ]);
+            $AuthUserId = auth('api')->id();
 
-        return response()->json([
-            'mensaje' => 'Tipo de habitación agregada correctamente',
-            'data'    => $tipo
-        ], 201);
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                ->where('hotel_id', $request->hotel_id)
+                ->exists();
 
-    } catch (ValidationException $e) {
-        return response()->json([
-            'mensaje' => 'Campos Requeridos',
-            'errores' => $e->errors()
-        ], 422);
+            if (! $verificarUsuario) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permiso para agregar tipos de Habitaciones en este hotel ',
+                ], 403);
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'mensaje' => 'No se pudo crear el Tipo de Habitación',
-            'error'   => $e->getMessage()
-        ], 500);
-    }
+            }
+
+            $tipo = TipoHabitacion::create([
+                'nombre' => $request->nombre,
+                'descripcion' => $request->descripcion,
+                'hotel_id' => $request->hotel_id,
+            ]);
+
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Tipo de habitación agregada correctamente',
+                'data' => $tipo,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Faltan Campos que son requeridos',
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No se pudo crear el Tipo de Habitación',
+            ], 500);
+        }
     }
 
     /**
