@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RolEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Models\StaffHotel;
@@ -126,9 +127,18 @@ class AdminHotelController extends Controller
 
     public function show(string $id)
     {
-        $hotel = Hotel::with('staff_hotel.user')->findOrFail($id);
+        $AuthUserId = auth('api')->id();
 
-        return response()->json($hotel, 200);
+        $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+            ->where('hotel_id', $id)
+            ->exists();
+
+        if (! $verificarUsuario) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No tienes permisos para ver este hotel',
+            ], 403);
+        }
     }
 
     /**
@@ -137,20 +147,32 @@ class AdminHotelController extends Controller
     public function update(Request $request, string $id)
     {
 
+        $request->validate(
+            [
+                'nombre' => ['required', 'string'],
+                'descripcion' => ['required', 'string'],
+                'direccion' => ['required', 'string'],
+                'email' => ['required', 'email'],
+                'telefono' => ['required', 'string'],
+                'telefono2' => ['nullable', 'string'],
+                'telefono3' => ['nullable', 'string'],
+            ]);
+
         try {
+            $AuthUserId = auth('api')->id();
+
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                ->where('hotel_id', $id)
+                ->where('rol', RolEnum::PROPIETARIO->value)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json(['status' => 'error',
+                    'message' => 'No tienes permisos para actualizar los datos del hotel'], 401);
+            }
 
             $hotel = Hotel::findOrFail($id);
 
-            $request->validate(
-                [
-                    'nombre' => ['required', 'string'],
-                    'descripcion' => ['required', 'string'],
-                    'direccion' => ['required', 'string'],
-                    'email' => ['required', 'email'],
-                    'telefono' => ['required', 'string'],
-                    'telefono2' => ['required', 'string'],
-                    'telefono3' => ['required', 'string'],
-                ]);
             $hotel->update([
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
@@ -162,44 +184,61 @@ class AdminHotelController extends Controller
             ]);
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Hotel actualizado correctamente',
-                'hotel' => $hotel,
-            ], 202);
+                'data' => $hotel,
+            ], 200);
 
+        } catch (ModelNotFoundException $m) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hotel no encontrado con el ID = '.$id,
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Hotel no encontrado o error al actualizar',
-                'error' => $e->getMessage(),
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
             ], 500);
         }
 
     }
 
-    /*
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(string $hotel_id)
     {
         try {
-            $hotel = Hotel::with('staff_hotel')->findOrFail($id);
+
+            $AuthUserId = auth('api')->id();
+
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)->
+            where('hotel_id', $hotel_id)
+                ->where('rol', RolEnum::PROPIETARIO->value)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json(['status' => 'error',  'message' => 'No tienes permisos para desactivar el hotel'], 401);
+            }
+
+            $hotel = Hotel::with('staff_hotel')->findOrFail($hotel_id);
 
             $hotel->update(['estado' => false]);
 
             $hotel->staff_hotel()->update(['estado' => false]);
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Hotel y staff desactivados correctamente.',
                 'hotel' => $hotel->load('staff_hotel'),
             ], 200);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Hotel no encontrado con el ID = '.$id,
+                'status' => 'error',
+                'message' => 'Hotel no encontrado con el ID = '.$hotel_id,
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
+                'status' => 'error',
                 'message' => 'Error al desactivar el hotel',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
