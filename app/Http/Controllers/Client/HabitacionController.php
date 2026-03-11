@@ -21,7 +21,7 @@ class HabitacionController extends Controller
 
 
           return response()->json([
-            'status' => 'Ok',
+            'status' => 'ok',
             'data' => $habitaciones
           ], 200);
 
