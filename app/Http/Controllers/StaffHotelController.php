@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Hash;
 
 class StaffHotelController extends Controller
 {
-    
+
     public function index()//aqui va a ir el id de el hotel
     {
         try{
@@ -21,10 +21,10 @@ class StaffHotelController extends Controller
             ->staff_hotel()
             ->get();
              return response()->json([
-                'status'=> 'ok',//esta condicion te enviara qeu todo esta bien 
+                'status'=> 'ok',//esta condicion te enviara qeu todo esta bien
                 'data'=> $staff//devolvera toda la data del staff
 
-            ],200);//signifa ok o todo bien 
+            ],200);//signifa ok o todo bien
 
         }catch(ModelNotFoundException $m){
             return response()->json([
@@ -72,10 +72,10 @@ class StaffHotelController extends Controller
            'user_id' => $user->id,
         ]);
         DB::commit();
-        $staff->load([//nota personal el load es para cargar una parte espesifica de la tabla 
+        $staff->load([//nota personal el load es para cargar una parte espesifica de la tabla
             'hotel:id,nombre',
             'user:id,name'
-        ]); 
+        ]);
         return response()->json([
             'status' => 'ok',
             'message' => 'Staff registrado correctamente',
@@ -95,16 +95,16 @@ class StaffHotelController extends Controller
     public function show(string $id)
     {
        try {
-        
+
         $staff = StaffHotel::with(['user'])->findOrFail($id);
 
         $staff->load([
             'hotel:id,nombre',
-        ]); 
+        ]);
 
-        return response()->json([// en la parte de hotel quiero que me devuleva sdolo id y nombre 
+        return response()->json([// en la parte de hotel quiero que me devuleva solo id y nombre
             'status' => 'ok',
-            'data' => $staff 
+            'data' => $staff
         ], 200);
 
        } catch (ModelNotFoundException $e) {
@@ -158,6 +158,6 @@ class StaffHotelController extends Controller
         ], 500);
     }
    }
-   
- 
+
+
 }
