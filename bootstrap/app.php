@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'staff.activo' => \App\Http\Middleware\VerificarStaffActivo::class,
+            'role.and' => \App\Http\Middleware\RoleAndMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
