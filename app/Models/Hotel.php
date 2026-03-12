@@ -22,8 +22,19 @@ class Hotel extends Model
     'telefono3',
     ];
 
-    public function staffHotels ():HasMany
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
+    
+    public function staffHotels()
     {
         return $this->hasMany(StaffHotel::class);
+    }
+
+    public function Habitaciones()
+    {
+        return $this->hasMany(Habitacion::class);
     }
 }

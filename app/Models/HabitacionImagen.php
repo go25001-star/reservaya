@@ -11,7 +11,13 @@ class HabitacionImagen extends Model
     protected $table = 'habitaciones_imagen';
 
     protected $fillable = [
-        'url'
+        'url',
+        'habitacion_id',
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at'
     ];
 
 

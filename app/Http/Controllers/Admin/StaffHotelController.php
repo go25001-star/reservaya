@@ -14,18 +14,20 @@ use Illuminate\Support\Facades\Hash;
 
 class StaffHotelController extends Controller
 {
-    public function index(string $id)// aqui va a ir el id de el hotel
+    public function index(Request $request)
     {
         try {
+
+            $hotelid = $request->query('hotel');
 
             $userAuthId = auth('api')->user()->id;
 
             $staffAuth = StaffHotel::where('user_id', $userAuthId)
-                ->where('hotel_id', $id)
+                ->where('hotel_id', $hotelid)
                 ->select('rol')
                 ->firstOrFail();
 
-            $query = Hotel::findOrFail($id)->staffHotels()->with('user:id,name');
+            $query = Hotel::findOrFail($hotelid)->staffHotels()->with('user:id,name');
 
             if ($staffAuth->rol === RolEnum::GERENTE->value) {
 
@@ -48,7 +50,7 @@ class StaffHotelController extends Controller
             $staff = $query->get();
 
             return response()->json([
-                'status' => 'ok',
+                'status' => 'success',
                 'data' => $staff,
             ], 200);
 
@@ -70,23 +72,20 @@ class StaffHotelController extends Controller
      */
     public function store(Request $request)
     {
-
         try {
-
             $request->validate([
                 'hotel_id' => 'required|exists:hoteles,id',
-
                 'name' => 'required|string|max:191',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|min:8',
-
-                'rol' => 'required|in:PROPIETARIO,GERENTE,RECEPCIONISTA',
+                'rol' => 'required|in:GERENTE,RECEPCIONISTA',
                 'fecha_asignacion' => 'required|date',
             ]);
 
-            $userAuthId = auth('api')->id();
+            $userAuth = auth('api')->user();
 
-            $staffAuth = StaffHotel::where('user_id', $userAuthId)
+            // Verificar que pertenece al hotel
+            $staffAuth = StaffHotel::where('user_id', $userAuth->id)
                 ->where('hotel_id', $request->hotel_id)
                 ->exists();
 
@@ -94,6 +93,13 @@ class StaffHotelController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'No tienes permiso para registrar usuarios en este hotel',
+                ], 403);
+            }
+
+            if ($userAuth->hasRole(RolEnum::GERENTE->value) && $request->rol !== RolEnum::RECEPCIONISTA->value) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Como Gerente solo puedes registrar Recepcionistas',
                 ], 403);
             }
 
@@ -106,7 +112,6 @@ class StaffHotelController extends Controller
             ]);
 
             $user->assignRole(RolEnum::USUARIOADMIN->value);
-
             $user->assignRole(RolEnum::from($request->rol)->value);
 
             $staff = StaffHotel::create([
@@ -116,17 +121,28 @@ class StaffHotelController extends Controller
                 'hotel_id' => $request->hotel_id,
                 'user_id' => $user->id,
             ]);
+
             DB::commit();
-            $staff->load([// nota personal el load es para cargar una parte especifica de la tabla
+
+            $staff->load([
                 'hotel:id,nombre',
                 'user:id,name',
             ]);
 
             return response()->json([
-                'status' => 'ok',
+                'status' => 'success',
                 'message' => 'Usuario del hotel registrado correctamente',
                 'data' => $staff,
             ], 201);
+
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Faltan campos requeridos',
+            ], 422);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -135,7 +151,6 @@ class StaffHotelController extends Controller
                 'message' => 'Error interno del servidor',
             ], 500);
         }
-
     }
 
     public function show(string $id)
@@ -155,11 +170,10 @@ class StaffHotelController extends Controller
                 'hotel:id,nombre',
             ]);
 
-            return response()->json([// en la parte de hotel quiero que me devuleva sdolo id y nombre
-                'status' => 'ok',
-                'data' => $staff,
+            return response()->json([
+                'status' => 'success',
+                'data' => $staff->makeHidden(['hotel_id', 'user_id', 'created_at', 'updated_at']),
             ], 200);
-
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
@@ -174,26 +188,30 @@ class StaffHotelController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        // basio por que no se puede hascer un degrado de un nivel asi de brusco
-    }
-
-    /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
     {
         try {
+            $userAuth = auth('api')->user();
+            $userAuthId = $userAuth->id;
 
-            $userAuthId = auth('api')->id(); // Trae el id del usuario que esta logueado,
+            // 1. Primero buscar el target
+            $staff = StaffHotel::findOrFail($id);
 
-            $staffAuth = StaffHotel::where('user_id', $userAuthId)->firstOrFail(); // Verificamos los datos del usuario logueado sean los correctos con los guardaos en la BD
+            // 2. Ahora buscar el auth en el mismo hotel del target
+            $staffAuth = StaffHotel::where('user_id', $userAuthId)
+                ->where('hotel_id', $staff->hotel_id)
+                ->first();
 
-            $staff = StaffHotel::findOrFail($id); // El usuario del hotel que vamos a desactivar;
+            if (! $staffAuth) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes un perfil de staff asignado en este hotel',
+                ], 403);
+            }
 
+            // 3. No puede desactivarse a sí mismo
             if ((int) $staff->user_id === (int) $userAuthId) {
                 return response()->json([
                     'status' => 'error',
@@ -201,10 +219,11 @@ class StaffHotelController extends Controller
                 ], 403);
             }
 
-            if ($staffAuth->hotel_id !== $staff->hotel_id) {
+            // 4. Gerente solo puede desactivar Recepcionistas
+            if ($userAuth->hasRole(RolEnum::GERENTE->value) && ! $staff->user->hasRole(RolEnum::RECEPCIONISTA->value)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'No tienes permiso para desactivar a este usuario',
+                    'message' => 'Como Gerente solo puedes desactivar Recepcionistas',
                 ], 403);
             }
 
@@ -212,15 +231,15 @@ class StaffHotelController extends Controller
             $staff->save();
 
             return response()->json([
-                'status' => 'ok',
+                'status' => 'success',
                 'message' => 'Usuario desactivado correctamente',
-                'data' => $staff,
+                'data' => $staff->makeHidden(['hotel_id', 'user_id', 'created_at', 'updated_at']),
             ], 200);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No se encontró el registro de el usuario',
+                'message' => 'No se encontró el registro del usuario',
             ], 404);
 
         } catch (\Exception $e) {

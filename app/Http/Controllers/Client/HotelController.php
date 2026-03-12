@@ -19,7 +19,7 @@ class HotelController extends Controller
                 ->get(['id', 'nombre', 'imagen', 'direccion']);
 
             return response()->json([
-                'status' => 'ok',
+                'status' => 'success',
                 'data' => $data,
             ], 200);
         } catch (\Throwable $e) {

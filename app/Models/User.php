@@ -9,11 +9,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
+
+    protected $guard_name = 'api';
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +37,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'imagen',
     ];
 
     /**
@@ -34,7 +48,12 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'created_at',
+        'updated_at',
+
     ];
+
+    
 
     /**
      * Get the attributes that should be cast.
@@ -49,12 +68,12 @@ class User extends Authenticatable
         ];
     }
 
-    public function reservas():HasMany
+    public function reservas(): HasMany
     {
-       return $this->hasMany(Reserva::class);
+        return $this->hasMany(Reserva::class);
     }
 
-    public function Staff():BelongsTo
+    public function Staff(): BelongsTo
     {
         return $this->belongsTo(StaffHotel::class);
     }

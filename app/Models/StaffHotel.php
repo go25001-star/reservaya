@@ -23,6 +23,11 @@ class StaffHotel extends Model{
         'fecha_asignacion' => 'date',
     ];
 
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
     public function hotel():BelongsTo
     {
         return $this->belongsTo(Hotel::class);
