@@ -15,6 +15,11 @@ class TipoHabitacion extends Model
         'hotel_id',
     ];
 
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
     public function habitaciones(): HasMany
     {
         return $this->hasMany(Habitacion::class);

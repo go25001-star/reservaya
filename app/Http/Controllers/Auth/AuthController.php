@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use Spatie\Permission\Models\Role;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -21,7 +21,7 @@ class AuthController extends Controller
 
         $token = Auth::attempt($credenciales);
 
-        if (!Auth::attempt($credenciales)) {
+        if (! Auth::attempt($credenciales)) {
             return response()->json([
                 'message' => 'Credenciales inválidas',
             ], 401);
@@ -46,49 +46,49 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->password),
         ]);
 
-
-        $user->assignRole(RolEnum::USUARIO->value);
-
-        $token= JWTAuth::fromUser($user);
+        $user->assignRole(Role::findByName(RolEnum::USUARIO->value, 'api'));
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
-          'message' => 'Usuario creado correctamente',
-          'access_token' => $token ,
-          'token_type' => 'bearer',
-          'expires_in' => auth()->factory()->getTTL() * 60,
-          'user' => $user
+            'message' => 'Usuario creado correctamente',
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth()->factory()->getTTL() * 60,
+            'user' => $user,
         ], 201);
 
     }
 
-    public function responseWithToken($token){
+    public function responseWithToken($token)
+    {
 
-       return  response()->json([
-           'access_token' => $token,
-           'token_type' => 'bearer',
-           'token_expires' => Auth()->factory()->getTTL() * 60
-       ],200);
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'token_expires' => Auth()->factory()->getTTL() * 60,
+        ], 200);
 
     }
 
-
-    public function me(){
-       return response()->json(auth()->user());
+    public function me()
+    {
+        return response()->json(auth()->user());
     }
 
-
-    public function logout(){
+    public function logout()
+    {
         auth()->logout();
 
         return response()->json([
-         'message' => 'Sesión Cerrada correctamente'
-        ],200);
+            'message' => 'Sesión Cerrada correctamente',
+        ], 200);
     }
 
-    public function refresh(){
-       return  $this->responseWithToken(auth()->refresh());
+    public function refresh()
+    {
+        return $this->responseWithToken(auth()->refresh());
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RolEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Models\StaffHotel;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class AdminHotelController extends Controller
 {
@@ -24,7 +26,8 @@ class AdminHotelController extends Controller
             $staffHotel = StaffHotel::where('user_id', $userAuthId)
                 ->where('estado', true)
                 ->with('hotel:id,nombre,imagen')
-                ->get();
+                ->get()
+                ->pluck('hotel');
 
             if ($staffHotel->isEmpty()) {
                 return response()->json([
@@ -51,28 +54,55 @@ class AdminHotelController extends Controller
      */
     public function store(Request $request)
     {
-
-        $data = $request->validate([
-            'nombre' => 'required|string',
-            'descripcion' => 'required|string',
-            'direccion' => 'required|string',
-            'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'email' => 'required|email',
-            'telefono' => 'required|string',
-            'telefono2' => 'nullable|string',
-            'telefono3' => 'nullable|string',
-
-            // staff
-            'fecha_asignacion' => 'required|date',
-        ]);
-
         try {
+            if (! $request->has('hotel')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El objeto hotel es requerido',
+                ], 422);
+            }
+
+            $hotelData = json_decode($request->hotel, true);
+
+            if (! $hotelData) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El formato del JSON es inválido',
+                ], 422);
+            }
+
+            $data = [
+                'nombre' => $hotelData['nombre'] ?? null,
+                'descripcion' => $hotelData['descripcion'] ?? null,
+                'direccion' => $hotelData['direccion'] ?? null,
+                'email' => $hotelData['email'] ?? null,
+                'telefono' => $hotelData['telefono'] ?? null,
+                'telefono2' => $hotelData['telefono2'] ?? null,
+                'telefono3' => $hotelData['telefono3'] ?? null,
+                'fecha_asignacion' => $hotelData['fecha_asignacion'] ?? null,
+            ];
+
+            $validator = Validator::make($data, [
+                'nombre' => 'required|string',
+                'descripcion' => 'required|string',
+                'direccion' => 'required|string',
+                'email' => 'required|email',
+                'telefono' => 'required|string',
+                'telefono2' => 'nullable|string',
+                'telefono3' => 'nullable|string',
+                'fecha_asignacion' => 'required|date',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Faltan campos requeridos',
+                ], 422);
+            }
 
             DB::beginTransaction();
 
             $user = auth('api')->user();
-
-            $userAuthId = $user->id;
 
             if (! $user->hasRole(RolEnum::PROPIETARIO->value)) {
                 $user->assignRole(RolEnum::PROPIETARIO->value);
@@ -80,7 +110,7 @@ class AdminHotelController extends Controller
 
             $imagenPath = null;
             if ($request->hasFile('imagen')) {
-                $imagenPath = $request->file('imagen')->store('hoteles', 'public');
+                $imagenPath = Storage::disk('public')->put('hoteles', $request->file('imagen'));
             }
 
             $hotel = Hotel::create([
@@ -96,7 +126,7 @@ class AdminHotelController extends Controller
 
             StaffHotel::create([
                 'hotel_id' => $hotel->id,
-                'user_id' => $userAuthId,
+                'user_id' => $user->id,
                 'rol' => RolEnum::PROPIETARIO->value,
                 'fecha_asignacion' => $data['fecha_asignacion'],
                 'estado' => true,
@@ -105,9 +135,9 @@ class AdminHotelController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => 'ok',
+                'status' => 'success',
                 'message' => 'Hotel creado exitosamente.',
-                'hotel' => $hotel->load('staff_hotel:id,hotel_id,user_id,rol'),
+                'data' => $hotel->load('staffhotels:id,hotel_id,user_id,rol'),
             ], 201);
 
         } catch (\Exception $e) {
@@ -126,9 +156,39 @@ class AdminHotelController extends Controller
 
     public function show(string $id)
     {
-        $hotel = Hotel::with('staff_hotel.user')->findOrFail($id);
+        try {
+            $AuthUserId = auth('api')->id();
 
-        return response()->json($hotel, 200);
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                ->where('hotel_id', $id)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No tienes permisos para ver este hotel',
+                ], 403);
+            }
+
+            $hotel = Hotel::findOrFail($id);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $hotel,
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hotel no encontrado',
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
+            ], 500);
+        }
     }
 
     /**
@@ -137,20 +197,42 @@ class AdminHotelController extends Controller
     public function update(Request $request, string $id)
     {
 
+        $request->validate(
+            [
+                'nombre' => ['required', 'string'],
+                'descripcion' => ['required', 'string'],
+                'direccion' => ['required', 'string'],
+                'email' => ['required', 'email'],
+                'telefono' => ['required', 'string'],
+                'telefono2' => ['nullable', 'string'],
+                'telefono3' => ['nullable', 'string'],
+            ]);
+
         try {
+            $AuthUserId = auth('api')->id();
+
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                ->where('hotel_id', $id)
+                ->where('rol', RolEnum::PROPIETARIO->value)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json(['status' => 'error',
+                    'message' => 'No tienes permisos para actualizar los datos del hotel'], 403);
+            }
 
             $hotel = Hotel::findOrFail($id);
 
-            $request->validate(
-                [
-                    'nombre' => ['required', 'string'],
-                    'descripcion' => ['required', 'string'],
-                    'direccion' => ['required', 'string'],
-                    'email' => ['required', 'email'],
-                    'telefono' => ['required', 'string'],
-                    'telefono2' => ['required', 'string'],
-                    'telefono3' => ['required', 'string'],
-                ]);
+            
+            $imagen = $hotel->imagen;
+
+            if($request->hasFile('imagen')){
+                if($hotel->imagen){
+                    Storage::disk('public')->delete($hotel->imagen);
+                }
+                $imagen = Storage::disk('public')->put('hoteles', $request->file('imagen'));
+            }
+
             $hotel->update([
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
@@ -159,47 +241,67 @@ class AdminHotelController extends Controller
                 'telefono' => $request->telefono,
                 'telefono2' => $request->telefono2,
                 'telefono3' => $request->telefono3,
+                'imagen' => $imagen
             ]);
 
             return response()->json([
+                'status' => 'ok',
                 'message' => 'Hotel actualizado correctamente',
-                'hotel' => $hotel,
-            ], 202);
+                'data' => $hotel,
+            ], 200);
 
+        } catch (ModelNotFoundException $m) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hotel no encontrado con el ID = '.$id,
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Hotel no encontrado o error al actualizar',
-                'error' => $e->getMessage(),
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
             ], 500);
         }
 
     }
 
-    /*
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(string $hotel_id)
     {
         try {
-            $hotel = Hotel::with('staff_hotel')->findOrFail($id);
+
+            $AuthUserId = auth('api')->id();
+
+            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)->
+            where('hotel_id', $hotel_id)
+                ->where('rol', RolEnum::PROPIETARIO->value)
+                ->exists();
+
+            if (! $verificarUsuario) {
+                return response()->json(['status' => 'error',
+                    'message' => 'No tienes permisos para desactivar el hotel',
+                ], 403);
+            }
+
+            $hotel = Hotel::with('staffHotels')->findOrFail($hotel_id);
 
             $hotel->update(['estado' => false]);
 
-            $hotel->staff_hotel()->update(['estado' => false]);
+            $hotel->staffHotels()->update(['estado' => false]);
 
             return response()->json([
+                'status' => 'success',
                 'message' => 'Hotel y staff desactivados correctamente.',
-                'hotel' => $hotel->load('staff_hotel'),
+                'hotel' => $hotel->load('staffHotels'),
             ], 200);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Hotel no encontrado con el ID = '.$id,
+                'status' => 'error',
+                'message' => 'Hotel no encontrado con el ID = '.$hotel_id,
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al desactivar el hotel',
-                'error' => $e->getMessage(),
+                'status' => 'error',
+                'message' => 'Error interno del servidor',
             ], 500);
         }
     }

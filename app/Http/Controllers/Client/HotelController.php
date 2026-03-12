@@ -14,17 +14,19 @@ class HotelController extends Controller
     public function index()
     {
         try {
-            $data = Hotel::all();
+            // Mejor filtrar solo los activos y limitar campos
+            $data = Hotel::where('estado', true)
+                ->get(['id', 'nombre', 'imagen', 'direccion']);
 
-           return response()->json([
-            'status' => 'ok' ,
-            'data' => $data
-           ],200);
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ], 200);
         } catch (\Throwable $e) {
             return response()->json([
-            'status' => 'error' ,
-            'message' => $e->getMessage()
-           ],500);
+                'status' => 'error',
+                'message'=> 'Error interno del servidor' 
+            ], 500);
         }
     }
 

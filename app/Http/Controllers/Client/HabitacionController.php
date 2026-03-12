@@ -21,7 +21,7 @@ class HabitacionController extends Controller
 
 
           return response()->json([
-            'status' => 'Ok',
+            'status' => 'ok',
             'data' => $habitaciones
           ], 200);
 
@@ -35,7 +35,8 @@ class HabitacionController extends Controller
         } catch (\Exception $e) {
           return response()->json([
             'status' => 'error',
-            'message' => 'Error interno en el servidor'
+            'message' => 'Error interno en el servidor',
+            'messageError' =>  $e->getMessage()
           ], 500);
         } 
     }

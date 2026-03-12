@@ -12,13 +12,18 @@ class Habitacion extends Model
     protected $table = 'habitaciones';
 
     protected $fillable = [
-        'nombre_habitacion',
+        'nombre',
         'estado',
         'num_habitacion',
         'precio',
         'capacidad',
         'tipo_habitacion_id',
         'hotel_id',
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at'
     ];
 
      public function hotel(): BelongsTo
