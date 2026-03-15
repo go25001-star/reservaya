@@ -4,11 +4,13 @@ use App\Enums\RolEnum;
 use App\Http\Controllers\Admin\AdminHotelController;
 use App\Http\Controllers\Admin\HabitacionController as AdminHabitacionController;
 use App\Http\Controllers\Admin\ImagenHabitacionController;
+use App\Http\Controllers\Admin\RecepcionistaReservaController;
 use App\Http\Controllers\Admin\StaffHotelController;
 use App\Http\Controllers\Admin\TipoHabitacionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Client\HabitacionController;
 use App\Http\Controllers\Client\HotelController;
+use App\Http\Controllers\Client\ReservaController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -26,8 +28,6 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('admin')->group(function () {
 
-  
-
     Route::middleware(['auth:api', 'staff.activo', 'role.and:USUARIOADMIN,PROPIETARIO'])->group(function () {
         Route::apiResource('hoteles', AdminHotelController::class);
     });
@@ -44,21 +44,19 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('imagenesHabitacion', ImagenHabitacionController::class);
     });
 
-    $rolesIndex = implode('|', [
-        RolEnum::PROPIETARIO->value,
-        RolEnum::GERENTE->value,
-        RolEnum::RECEPCIONISTA->value,
-    ]);
-
-    Route::middleware(['auth:api', 'staff.activo', 'role:'.$rolesIndex])->group(function () {
-        Route::apiResource('habitaciones', AdminHabitacionController::class)->only('index');
-    });
+    
 
 });
-
-
 
 Route::prefix('principalpage')->group(function () {
     Route::get('hoteles', [HotelController::class, 'index']);
     Route::get('habitaciones/{hotel_id}', [HabitacionController::class, 'index']);
+});
+
+Route::prefix('user')->group(function () {
+
+    Route::middleware(['auth:api', 'role:'.RolEnum::USUARIO->value])->group(function () {
+        Route::apiResource('reserva', ReservaController::class);
+
+    });
 });

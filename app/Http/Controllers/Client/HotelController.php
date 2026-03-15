@@ -16,7 +16,9 @@ class HotelController extends Controller
         try {
             // Mejor filtrar solo los activos y limitar campos
             $data = Hotel::where('estado', true)
-                ->get(['id', 'nombre', 'imagen', 'direccion']);
+                ->select(['id', 'nombre', 'imagen', 'direccion'])
+                ->withMin('Habitaciones', 'precio')
+                ->get();
 
             return response()->json([
                 'status' => 'success',
@@ -25,7 +27,7 @@ class HotelController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
-                'message'=> 'Error interno del servidor' 
+                'message' => 'Error interno del servidor', zx,
             ], 500);
         }
     }

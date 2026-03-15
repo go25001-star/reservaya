@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DetalleReserva extends Model
 {
-   protected $table = 'detalle_reserva';
+   protected $table = 'detalle_reservas';
 
    protected $fillable = [
      'precio',

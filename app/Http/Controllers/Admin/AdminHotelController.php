@@ -110,9 +110,9 @@ class AdminHotelController extends Controller
 
             $imagenPath = null;
             if ($request->hasFile('imagen')) {
-                $imagenPath = Storage::disk('public')->put('hoteles', $request->file('imagen'));
+                $path = $request->file('imagen')->store('hoteles', 'public');
+                $imagenPath = asset('storage/'.$path);
             }
-
             $hotel = Hotel::create([
                 'nombre' => $data['nombre'],
                 'descripcion' => $data['descripcion'],
@@ -223,11 +223,10 @@ class AdminHotelController extends Controller
 
             $hotel = Hotel::findOrFail($id);
 
-            
             $imagen = $hotel->imagen;
 
-            if($request->hasFile('imagen')){
-                if($hotel->imagen){
+            if ($request->hasFile('imagen')) {
+                if ($hotel->imagen) {
                     Storage::disk('public')->delete($hotel->imagen);
                 }
                 $imagen = Storage::disk('public')->put('hoteles', $request->file('imagen'));
@@ -241,7 +240,7 @@ class AdminHotelController extends Controller
                 'telefono' => $request->telefono,
                 'telefono2' => $request->telefono2,
                 'telefono3' => $request->telefono3,
-                'imagen' => $imagen
+                'imagen' => $imagen,
             ]);
 
             return response()->json([
