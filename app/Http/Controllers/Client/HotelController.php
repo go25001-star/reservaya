@@ -16,7 +16,7 @@ class HotelController extends Controller
         try {
             // Mejor filtrar solo los activos y limitar campos
             $data = Hotel::where('estado', true)
-                ->select(['id', 'nombre', 'imagen', 'direccion'])
+                ->select(['id', 'nombre', 'imagen', 'direccion', 'departamento'])
                 ->withMin('Habitaciones', 'precio')
                 ->get();
 

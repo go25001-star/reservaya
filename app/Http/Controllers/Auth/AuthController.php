@@ -32,40 +32,42 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        try {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|min:2|max:100',
+                'email' => 'required|string|email|max:100|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|min:2|max:100',
-            'email' => 'required|string|email|max:100|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 422);
+            }
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            $user->assignRole(Role::findByName(RolEnum::USUARIO->value, 'api'));
+            $token = JWTAuth::fromUser($user);
+
+            return response()->json([
+                'message' => 'Usuario creado correctamente',
+                'access_token' => $token,
+                'token_type' => 'bearer',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $user->getRoleNames(),
+                ],
+                'expires_in' => auth()->factory()->getTTL() * 60,
+            ], 201);
+
+        } catch (\Throwable $th) {
+             return response()->json();
         }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $user->assignRole(Role::findByName(RolEnum::USUARIO->value, 'api'));
-        $token = JWTAuth::fromUser($user);
-
-        return response()->json([
-            'message' => 'Usuario creado correctamente',
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'roles' => $user->getRoleNames(),
-            ],
-            'expires_in' => auth()->factory()->getTTL() * 60,
-            'user' => $user,
-        ], 201);
-
     }
 
     public function responseWithToken($token)

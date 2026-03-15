@@ -28,7 +28,7 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('admin')->group(function () {
 
-    Route::middleware(['auth:api', 'staff.activo', 'role.and:USUARIOADMIN,PROPIETARIO'])->group(function () {
+    Route::middleware(['auth:api', 'role.and:USUARIOADMIN'])->group(function () {
         Route::apiResource('hoteles', AdminHotelController::class);
     });
 

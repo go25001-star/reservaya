@@ -64,111 +64,111 @@ class HabitacionController extends Controller
         }
     }
 
-    public function store(Request $request)
-    {
-        try {
-            if (! $request->has('habitacion')) {
+        public function store(Request $request)
+        {
+            try {
+                if (! $request->has('habitacion')) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'El objeto habitacion es requerido',
+                    ], 422);
+                }
+
+                $habitacionData = json_decode($request->habitacion, true);
+
+                if (! $habitacionData) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'El formato del JSON es inválido',
+                    ], 422);
+                }
+
+                $data = [
+                    'nombre' => $habitacionData['nombre'] ?? null,
+                    'num_habitacion' => $habitacionData['num_habitacion'] ?? null,
+                    'precio' => $habitacionData['precio'] ?? null,
+                    'capacidad' => $habitacionData['capacidad'] ?? null,
+                    'tipo_habitacion_id' => $habitacionData['tipo_habitacion_id'] ?? null,
+                    'hotel_id' => $habitacionData['hotel_id'] ?? null,
+                ];
+
+                $validator = Validator::make($data, [
+                    'nombre' => 'required|string|max:250',
+                    'num_habitacion' => 'required|integer',
+                    'precio' => 'required|numeric',
+                    'capacidad' => 'required|integer',
+                    'tipo_habitacion_id' => 'required|integer|exists:tipo_habitaciones,id',
+                    'hotel_id' => 'required|integer|exists:hoteles,id',
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Faltan campos requeridos',
+                    ], 422);
+                }
+
+                $AuthUserId = auth('api')->id();
+
+                $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
+                    ->where('hotel_id', $data['hotel_id'])
+                    ->exists();
+
+                if (! $verificarUsuario) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No tienes permiso para agregar habitaciones en este hotel',
+                    ], 403);
+                }
+
+                DB::beginTransaction();
+
+                $habitacion = Habitacion::create([
+                    'nombre' => $data['nombre'],
+                    'estado' => EstadoHabitacionEnum::DISPONIBLE->value,
+                    'num_habitacion' => $data['num_habitacion'],
+                    'precio' => $data['precio'],
+                    'capacidad' => $data['capacidad'],
+                    'tipo_habitacion_id' => $data['tipo_habitacion_id'],
+                    'hotel_id' => $data['hotel_id'],
+                ]);
+
+                if ($request->hasFile('imagenes')) {
+                    foreach ($request->file('imagenes') as $file) {
+                        $url = asset('storage/'.$file->store('habitaciones', 'public'));
+                        HabitacionImagen::create([
+                            'url' => $url,
+                            'habitacion_id' => $habitacion->id,
+                        ]);
+                    }
+                }
+
+                DB::commit();
+
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'El objeto habitacion es requerido',
-                ], 422);
-            }
+                    'status' => 'success',
+                    'message' => 'Habitación creada correctamente',
+                    'data' => $habitacion->load(['tipoHabitacion', 'imagenes']),
+                ], 201);
 
-            $habitacionData = json_decode($request->habitacion, true);
+            } catch (ValidationException $e) {
+                DB::rollBack();
 
-            if (! $habitacionData) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'El formato del JSON es inválido',
-                ], 422);
-            }
-
-            $data = [
-                'nombre' => $habitacionData['nombre'] ?? null,
-                'num_habitacion' => $habitacionData['num_habitacion'] ?? null,
-                'precio' => $habitacionData['precio'] ?? null,
-                'capacidad' => $habitacionData['capacidad'] ?? null,
-                'tipo_habitacion_id' => $habitacionData['tipo_habitacion_id'] ?? null,
-                'hotel_id' => $habitacionData['hotel_id'] ?? null,
-            ];
-
-            $validator = Validator::make($data, [
-                'nombre' => 'required|string|max:250',
-                'num_habitacion' => 'required|integer',
-                'precio' => 'required|numeric',
-                'capacidad' => 'required|integer',
-                'tipo_habitacion_id' => 'required|integer|exists:tipo_habitaciones,id',
-                'hotel_id' => 'required|integer|exists:hoteles,id',
-            ]);
-
-            if ($validator->fails()) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Faltan campos requeridos',
                 ], 422);
-            }
 
-            $AuthUserId = auth('api')->id();
+            } catch (\Exception $e) {
+                DB::rollBack();
 
-            $verificarUsuario = StaffHotel::where('user_id', $AuthUserId)
-                ->where('hotel_id', $data['hotel_id'])
-                ->exists();
-
-            if (! $verificarUsuario) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'No tienes permiso para agregar habitaciones en este hotel',
-                ], 403);
+                    'message' => 'Error interno del servidor',
+                    'ErrorMesssage' => $e->getMessage(),
+                ], 500);
             }
-
-            DB::beginTransaction();
-
-            $habitacion = Habitacion::create([
-                'nombre' => $data['nombre'],
-                'estado' => EstadoHabitacionEnum::DISPONIBLE->value,
-                'num_habitacion' => $data['num_habitacion'],
-                'precio' => $data['precio'],
-                'capacidad' => $data['capacidad'],
-                'tipo_habitacion_id' => $data['tipo_habitacion_id'],
-                'hotel_id' => $data['hotel_id'],
-            ]);
-
-            if ($request->hasFile('imagenes')) {
-                foreach ($request->file('imagenes') as $file) {
-                    $url = asset('storage/'.$file->store('habitaciones', 'public'));
-                    HabitacionImagen::create([
-                        'url' => $url,
-                        'habitacion_id' => $habitacion->id,
-                    ]);
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Habitación creada correctamente',
-                'data' => $habitacion->load(['tipoHabitacion', 'imagenes']),
-            ], 201);
-
-        } catch (ValidationException $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Faltan campos requeridos',
-            ], 422);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error interno del servidor',
-                'ErrorMesssage' => $e->getMessage(),
-            ], 500);
         }
-    }
 
     public function show(string $id)
     {
