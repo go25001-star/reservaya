@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nombre',100);
             $table->text('descripcion');
             $table->string('direccion',250);
+            $table->string('departamento',50);
             $table->string('imagen',250)->nullable();
             $table->string('email',200);
             $table->string('telefono',25);

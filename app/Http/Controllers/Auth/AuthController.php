@@ -56,6 +56,12 @@ class AuthController extends Controller
             'message' => 'Usuario creado correctamente',
             'access_token' => $token,
             'token_type' => 'bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->getRoleNames(),
+            ],
             'expires_in' => auth()->factory()->getTTL() * 60,
             'user' => $user,
         ], 201);
@@ -64,10 +70,17 @@ class AuthController extends Controller
 
     public function responseWithToken($token)
     {
+        $user = auth('api')->user();
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'roles' => $user->getRoleNames(),
+            ],
             'token_expires' => Auth()->factory()->getTTL() * 60,
         ], 200);
 
