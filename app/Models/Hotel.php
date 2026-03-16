@@ -15,6 +15,7 @@ class Hotel extends Model
     'nombre',
     'descripcion',
     'direccion',
+    'departamento',
     'imagen',
     'email',
     'telefono',
