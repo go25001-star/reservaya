@@ -78,7 +78,7 @@ class ReservaController extends Controller
                 'fecha_salida' => $request->fecha_salida,
                 'fecha_reserva' => now(),
                 'total_precio' => $request->total_precio,
-                'estado' => EstadoReservaEnum::EN_PROCESO,
+                'estado' => EstadoReservaEnum::EN_PROCESO->value,
                 'user_id' => $AuthUserId,
 
             ]);

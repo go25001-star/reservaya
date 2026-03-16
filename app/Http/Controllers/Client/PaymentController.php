@@ -3,49 +3,49 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pago;
 use Illuminate\Http\Request;
-use Stripe\PaymentIntent;
 use Stripe\Stripe;
+use Stripe\Checkout\Session;
+
 
 class PaymentController extends Controller
 {
     public function procesarPago(Request $request)
-    {
-        try {
-            $request->validate([
-                'reserva_id' => 'required|exists:reservas,id',
-                'cantidad' => 'required|numeric|min:1',
-            ]);
+{
+    try {
+        $request->validate([
+            'reserva_id' => 'required|exists:reservas,id',
+            'cantidad' => 'required|numeric|min:1',
+        ]);
 
-            Stripe::setApiKey(config('services.stripe.secret'));  // Configurar stripe con las clave secreta
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-            $procesoPago = PaymentIntent::create([
-                'amount' => intval($request->cantidad * 100), // convierte a centavos
-                'currency' => 'usd',
-                'metadata' => [
-                    'reserva_id' => $request->reserva_id,
+        $session = Session::create([
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => 'Reserva #' . $request->reserva_id,
+                    ],
+                    'unit_amount' => intval($request->cantidad * 100),
                 ],
-            ]);
+                'quantity' => 1,
+            ]],
+            'mode' => 'payment',
+            'success_url' => 'http://localhost:5173/pago-exitoso?reserva=' . $request->reserva_id,
+            'cancel_url' => 'http://localhost:5173/pago-cancelado',
+        ]);
 
-            $pago = Pago::create([
-                'fecha_pago' => now(),
-                'cantidad' => $request->cantidad,
-                'tipo_pago' => 'Tarjeta',
-                'reserva_id' => $request->reserva_id,
-            ]);
+        return response()->json([
+            'url' => $session->url
+        ]);
 
-            return response()->json([
-                'clientSecret' => $procesoPago->client_secret,
-                'pago_id' => $pago?->id,
-                'message' => 'pago creado correctamente'], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al guardar el pago',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al procesar el pago',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 }
