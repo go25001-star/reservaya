@@ -32,8 +32,8 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-
-        $validator = Validator::make($request->all(), [
+       try {
+            $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:2|max:100',
             'email' => 'required|string|email|max:100|unique:users',
             'password' => 'required|string|min:8|confirmed',
@@ -65,12 +65,17 @@ class AuthController extends Controller
             'expires_in' => auth()->factory()->getTTL() * 60,
             'user' => $user,
         ], 201);
-
+       } catch (\Throwable $th) {
+             return response()->json([ $th->getMessage()],500);
+       }
     }
 
     public function responseWithToken($token)
     {
         $user = auth('api')->user();
+
+        $staff = \App\Models\StaffHotel::where('user_id', $user->id)->first();
+        $hotelId = $staff ? $staff->hotel_id : null;
 
         return response()->json([
             'access_token' => $token,
@@ -81,9 +86,9 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'roles' => $user->getRoleNames(),
             ],
+            'hotel_id' => $hotelId,
             'token_expires' => Auth()->factory()->getTTL() * 60,
         ], 200);
-
     }
 
     public function me()
