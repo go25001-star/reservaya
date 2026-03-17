@@ -28,7 +28,7 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('admin')->group(function () {
 
-    Route::middleware(['auth:api', 'staff.activo', 'role.and:USUARIOADMIN,PROPIETARIO'])->group(function () {
+    Route::middleware(['auth:api', 'staff.activo', 'role:USUARIOADMIN|PROPIETARIO'])->group(function () {
         Route::apiResource('hoteles', AdminHotelController::class);
     });
 
@@ -44,7 +44,7 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('imagenesHabitacion', ImagenHabitacionController::class);
     });
 
-    
+
 
 });
 
