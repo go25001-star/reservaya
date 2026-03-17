@@ -156,7 +156,7 @@ class HabitacionController extends Controller
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Faltan campos requeridos',
+                    'message' => 'Faltan campos requeridos',  
                 ], 422);
 
             } catch (\Exception $e) {
@@ -264,6 +264,7 @@ class HabitacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+                'message 2' => $e->getMessage(),
             ], 500);
         }
     }

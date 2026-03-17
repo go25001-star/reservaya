@@ -25,7 +25,7 @@ class AdminHotelController extends Controller
 
             $staffHotel = StaffHotel::where('user_id', $userAuthId)
                 ->where('estado', true)
-                ->with('hotel:id,nombre,imagen, departamento')
+                ->with('hotel:id,nombre,imagen,departamento')
                 ->get()
                 ->pluck('hotel');
 
@@ -45,6 +45,7 @@ class AdminHotelController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error Interno del Servidor',
+                'message_error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -202,14 +203,14 @@ class AdminHotelController extends Controller
 
         $request->validate(
             [
-                'nombre' => ['required', 'string'],
-                'descripcion' => ['required', 'string'],
-                'direccion' => ['required', 'string'],
-                'email' => ['required', 'email'],
-                'telefono' => ['required', 'string'],
+                'nombre' => ['nullable', 'string'],
+                'descripcion' => ['nullable', 'string'],
+                'direccion' => ['nullable', 'string'],
+                'email' => ['nullable', 'email'],
+                'telefono' => ['nullable', 'string'],
                 'telefono2' => ['nullable', 'string'],
                 'telefono3' => ['nullable', 'string'],
-                'departamento' => ['required', 'string'],
+                'departamento' => ['nullable', 'string'],
             ]);
 
         try {
@@ -233,18 +234,18 @@ class AdminHotelController extends Controller
                 if ($hotel->imagen) {
                     Storage::disk('public')->delete($hotel->imagen);
                 }
-                $imagen = Storage::disk('public')->put('hoteles', $request->file('imagen'));
+                $path = $request->file('imagen')->store('hoteles', 'public');
+                $imagen = asset('storage/'.$path);
             }
-
             $hotel->update([
                 'nombre' => $request->nombre,
-                'descripcion' => $request->descripcion,
-                'direccion' => $request->direccion,
-                'departamento' => $request->departamento,
-                'email' => $request->email,
-                'telefono' => $request->telefono,
-                'telefono2' => $request->telefono2,
-                'telefono3' => $request->telefono3,
+                'descripcion' => $request->descripcion ?? $hotel->descripcion,
+                'direccion' => $request->direccion ?? $hotel->direccion,
+                'departamento' => $request->departamento ?? $hotel->departamento,
+                'email' => $request->email ?? $hotel->email,
+                'telefono' => $request->telefono ?? $hotel->telefono,
+                'telefono2' => $request->telefono2 ?? $hotel->telefono2,
+                'telefono3' => $request->telefono3 ?? $hotel->telefono3,
                 'imagen' => $imagen,
             ]);
 
@@ -263,6 +264,7 @@ class AdminHotelController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+                'message 2' => $e->getMessage(),
             ], 500);
         }
 
@@ -287,9 +289,10 @@ class AdminHotelController extends Controller
 
             $hotel = Hotel::with('staffHotels')->findOrFail($hotel_id);
 
-            $hotel->update(['estado' => false]);
-
-            $hotel->staffHotels()->update(['estado' => false]);
+            $hotel->update(['estado' => false]);  
+            +        
+            $hotel->staffHotels()->update(['estado' => false]); 
+            
 
             return response()->json([
                 'status' => 'success',

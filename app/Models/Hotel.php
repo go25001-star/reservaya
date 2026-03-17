@@ -21,6 +21,7 @@ class Hotel extends Model
     'telefono',
     'telefono2',
     'telefono3',
+    'estado'
     ];
 
     protected $hidden = [
