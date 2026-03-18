@@ -165,7 +165,6 @@ class HabitacionController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Error interno del servidor',
-                    'ErrorMesssage' => $e->getMessage(),
                 ], 500);
             }
         }
@@ -264,7 +263,6 @@ class HabitacionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
-                'message 2' => $e->getMessage(),
             ], 500);
         }
     }
