@@ -45,7 +45,6 @@ class AdminHotelController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error Interno del Servidor',
-                'message_error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -56,7 +55,7 @@ class AdminHotelController extends Controller
     public function store(Request $request)
     {
         try {
-            if (! $request->has('hotel')) {
+            if (!$request->has('hotel')) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'El objeto hotel es requerido',
@@ -65,7 +64,7 @@ class AdminHotelController extends Controller
 
             $hotelData = json_decode($request->hotel, true);
 
-            if (! $hotelData) {
+            if (!$hotelData) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'El formato del JSON es inválido',
@@ -107,7 +106,7 @@ class AdminHotelController extends Controller
 
             $user = auth('api')->user();
 
-            if (! $user->hasRole(RolEnum::PROPIETARIO->value)) {
+            if (!$user->hasRole(RolEnum::PROPIETARIO->value)) {
                 $user->assignRole(RolEnum::PROPIETARIO->value);
             }
 
@@ -238,7 +237,7 @@ class AdminHotelController extends Controller
                 $imagen = asset('storage/'.$path);
             }
             $hotel->update([
-                'nombre' => $request->nombre,
+                'nombre' => $request->nombre  ?? $hotel->nombre,
                 'descripcion' => $request->descripcion ?? $hotel->descripcion,
                 'direccion' => $request->direccion ?? $hotel->direccion,
                 'departamento' => $request->departamento ?? $hotel->departamento,
@@ -264,7 +263,6 @@ class AdminHotelController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
-                'message 2' => $e->getMessage(),
             ], 500);
         }
 
@@ -290,7 +288,7 @@ class AdminHotelController extends Controller
             $hotel = Hotel::with('staffHotels')->findOrFail($hotel_id);
 
             $hotel->update(['estado' => false]);  
-            +        
+      
             $hotel->staffHotels()->update(['estado' => false]); 
             
 

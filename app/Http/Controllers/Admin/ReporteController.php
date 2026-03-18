@@ -21,11 +21,11 @@ class ReporteController extends Controller
             'reserva.detalles.habitacion.hotel',
         ])
             ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin.' 23:59:59'])
-            ->whereHas('reserva', function ($q) {
-                $q->where('estado', 'FINALIZADA');  
-            })
-            ->whereHas('reserva.detalles.habitacion', function ($q) use ($hotelId) {
-                $q->where('hotel_id', $hotelId);
+            ->whereHas('reserva', function ($q) use ($hotelId) {
+                $q->where('estado', 'FINALIZADA')
+                    ->whereHas('detalles.habitacion', function ($q2) use ($hotelId) {
+                        $q2->where('hotel_id', $hotelId);
+                    });
             })
             ->orderBy('fecha_pago', 'desc')
             ->get();

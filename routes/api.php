@@ -4,6 +4,7 @@ use App\Enums\RolEnum;
 use App\Http\Controllers\Admin\AdminHotelController;
 use App\Http\Controllers\Admin\HabitacionController as AdminHabitacionController;
 use App\Http\Controllers\Admin\ImagenHabitacionController;
+use App\Http\Controllers\Admin\RecepcionistaReservaController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\StaffHotelController;
 use App\Http\Controllers\Admin\TipoHabitacionController;
@@ -36,6 +37,7 @@ Route::prefix('admin')->group(function () {
     $roles = implode('|', [
         RolEnum::PROPIETARIO->value,
         RolEnum::GERENTE->value,
+        RolEnum::RECEPCIONISTA->value
     ]);
 
     Route::middleware(['auth:api', 'role:'.$roles])->group(function () {
@@ -43,6 +45,7 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('hotelusuarios', StaffHotelController::class);
         Route::apiResource('tipohabitaciones', TipoHabitacionController::class);
         Route::apiResource('imagenesHabitacion', ImagenHabitacionController::class);
+        Route::apiResource('reservas', RecepcionistaReservaController::class );
     });
 
 });
