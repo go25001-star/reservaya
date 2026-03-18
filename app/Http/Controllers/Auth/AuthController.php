@@ -74,6 +74,9 @@ class AuthController extends Controller
     {
         $user = auth('api')->user();
 
+        $staff = \App\Models\StaffHotel::where('user_id', $user->id)->first();
+        $hotelId = $staff ? $staff->hotel_id : null;
+
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
@@ -83,6 +86,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'roles' => $user->getRoleNames(),
             ],
+            'hotel_id' => $hotelId,
             'token_expires' => Auth()->factory()->getTTL() * 60,
         ], 200);
     }
