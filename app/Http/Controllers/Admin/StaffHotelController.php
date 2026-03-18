@@ -27,19 +27,17 @@ class StaffHotelController extends Controller
                 ->select('rol')
                 ->firstOrFail();
 
-            $query = Hotel::findOrFail($hotelid)->staffHotels()->with('user:id,name');
+            $query = Hotel::findOrFail($hotelid)->staffHotels()->with('user:id,name,email')->where('estado', true); //en el frontend no me mostrava el email
 
             if ($staffAuth->rol === RolEnum::GERENTE->value) {
 
                 $query->where('rol', RolEnum::RECEPCIONISTA->value);
-
             } elseif ($staffAuth->rol === RolEnum::PROPIETARIO->value) {
 
                 $query->whereIn('rol', [
                     RolEnum::GERENTE->value,
                     RolEnum::RECEPCIONISTA->value,
                 ]);
-
             } else {
                 return response()->json([
                     'status' => 'error',
@@ -53,13 +51,12 @@ class StaffHotelController extends Controller
                 'status' => 'success',
                 'data' => $staff,
             ], 200);
-
         } catch (ModelNotFoundException $m) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No se encontro el hotel',
             ], 404); // el 404 es para decir un error que no se se encontro el registro
-        } catch (\Exception $e) {// es para designar un error global
+        } catch (\Exception $e) { // es para designar un error global
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno de el servidor',
@@ -134,7 +131,6 @@ class StaffHotelController extends Controller
                 'message' => 'Usuario del hotel registrado correctamente',
                 'data' => $staff,
             ], 201);
-
         } catch (ValidationException $e) {
             DB::rollBack();
 
@@ -142,7 +138,6 @@ class StaffHotelController extends Controller
                 'status' => 'error',
                 'message' => 'Faltan campos requeridos',
             ], 422);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -182,7 +177,61 @@ class StaffHotelController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error interno del servidor: '.$e->getMessage(),
+                'message' => 'Error interno del servidor: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function update(Request $request, string $hotelusuario)
+    {
+        try {
+            $request->validate([
+                'name'     => 'sometimes|string|max:191',
+                'password' => 'sometimes|min:8',
+                'rol'      => 'sometimes|in:GERENTE,RECEPCIONISTA',
+            ]);
+
+            $userAuthId = auth('api')->id();
+
+            $staff = StaffHotel::findOrFail($hotelusuario);
+
+            $staffAuth = StaffHotel::where('user_id', $userAuthId)
+                ->where('hotel_id', $staff->hotel_id)
+                ->firstOrFail();
+
+            if ($request->has('name')) {
+                $staff->user->name = $request->name;
+            }
+
+            if ($request->has('password')) {
+                $staff->user->password = Hash::make($request->password);
+            }
+
+            $staff->user->save();
+
+            if ($request->has('rol')) {
+                $staff->user->syncRoles([
+                    RolEnum::USUARIOADMIN->value,
+                    RolEnum::from($request->rol)->value,
+                ]);
+                $staff->rol = $request->rol;
+                $staff->save();
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Usuario actualizado correctamente',
+                'data'    => $staff->load('user:id,name,email'),
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No se encontró el usuario',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -235,13 +284,11 @@ class StaffHotelController extends Controller
                 'message' => 'Usuario desactivado correctamente',
                 'data' => $staff->makeHidden(['hotel_id', 'user_id', 'created_at', 'updated_at']),
             ], 200);
-
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No se encontró el registro del usuario',
             ], 404);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',

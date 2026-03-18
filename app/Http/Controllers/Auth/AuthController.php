@@ -85,7 +85,6 @@ class AuthController extends Controller
             ],
             'token_expires' => Auth()->factory()->getTTL() * 60,
         ], 200);
-
     }
 
     public function me()

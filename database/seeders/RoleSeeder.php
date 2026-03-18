@@ -13,13 +13,13 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        
+
        foreach (RolEnum::cases() as $rol) {
           Role::firstOrCreate([
               'name' => $rol -> value ,
               'guard_name' => 'api'
           ]);
        }
-       
+
     }
 }
