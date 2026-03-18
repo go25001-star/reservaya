@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reserva;
+use App\Models\StaffHotel;
 use Illuminate\Http\Request;
 
 class RecepcionistaReservaController extends Controller
@@ -11,14 +12,14 @@ class RecepcionistaReservaController extends Controller
     public function index()
     {
         try {
-        
+
             $AuthUserId = auth('api')->id();
 
 
             $staffHotel = StaffHotel::where('user_id', $AuthUserId)->firstOrFail();
 
-            $hotel_id = $staffHotel->hotel_id; 
-                
+            $hotel_id = $staffHotel->hotel_id;
+
 
             if (!$hotel_id) {
                 return response()->json([
