@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hotel extends Model
 {
-    
+
     protected $table = 'hoteles';
-    
+
     protected $fillable = [
     'nombre',
     'descripcion',
@@ -28,7 +28,7 @@ class Hotel extends Model
         'updated_at'
     ];
 
-    
+
     public function staffHotels()
     {
         return $this->hasMany(StaffHotel::class);

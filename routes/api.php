@@ -2,6 +2,7 @@
 
 use App\Enums\RolEnum;
 use App\Http\Controllers\Admin\AdminHotelController;
+use App\Http\Controllers\Admin\EstadisticasController;
 use App\Http\Controllers\Admin\HabitacionController as AdminHabitacionController;
 use App\Http\Controllers\Admin\ImagenHabitacionController;
 use App\Http\Controllers\Admin\RecepcionistaReservaController;
@@ -31,6 +32,7 @@ Route::prefix('admin')->group(function () {
 
     Route::middleware(['auth:api', 'role.and:USUARIOADMIN'])->group(function () {
         Route::apiResource('hoteles', AdminHotelController::class);
+        Route::get('estadisticas', [EstadisticasController::class, 'index']);
     });
 
     $roles = implode('|', [
@@ -45,7 +47,7 @@ Route::prefix('admin')->group(function () {
         Route::apiResource('imagenesHabitacion', ImagenHabitacionController::class);
     });
 
-    
+
 
 });
 
@@ -62,3 +64,4 @@ Route::prefix('user')->group(function () {
 
     });
 });
+
