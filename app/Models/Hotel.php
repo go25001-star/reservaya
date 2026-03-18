@@ -15,7 +15,7 @@ class Hotel extends Model
     'nombre',
     'descripcion',
     'direccion',
-    'departamento',//no estaba en el modelo...
+    'departamento',
     'imagen',
     'email',
     'telefono',

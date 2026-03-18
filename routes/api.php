@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\TipoHabitacionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Client\HabitacionController;
 use App\Http\Controllers\Client\HotelController;
+use App\Http\Controllers\Client\PaymentController;
 use App\Http\Controllers\Client\ReservaController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +30,7 @@ Route::prefix('auth')->group(function () {
 
 Route::prefix('admin')->group(function () {
 
-    Route::middleware(['auth:api', 'staff.activo', 'role.and:USUARIOADMIN,PROPIETARIO'])->group(function () { //lo canbie a como estaba originalmente
+    Route::middleware(['auth:api', 'role.and:USUARIOADMIN'])->group(function () {
         Route::apiResource('hoteles', AdminHotelController::class);
         Route::get('estadisticas', [EstadisticasController::class, 'index']);
     });
@@ -39,7 +40,7 @@ Route::prefix('admin')->group(function () {
         RolEnum::GERENTE->value,
     ]);
 
-    Route::middleware(['auth:api', 'staff.activo', 'role:'.$roles])->group(function () {
+    Route::middleware(['auth:api','role:'.$roles])->group(function () {
         Route::apiResource('habitaciones', AdminHabitacionController::class);
         Route::apiResource('hotelusuarios', StaffHotelController::class);
         Route::apiResource('tipohabitaciones', TipoHabitacionController::class);
@@ -59,6 +60,7 @@ Route::prefix('user')->group(function () {
 
     Route::middleware(['auth:api', 'role:'.RolEnum::USUARIO->value])->group(function () {
         Route::apiResource('reserva', ReservaController::class);
+        Route::post('pago' , [PaymentController::class, 'procesarPago']);
 
     });
 });

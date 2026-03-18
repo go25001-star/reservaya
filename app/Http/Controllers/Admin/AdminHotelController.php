@@ -25,7 +25,7 @@ class AdminHotelController extends Controller
 
             $staffHotel = StaffHotel::where('user_id', $userAuthId)
                 ->where('estado', true)
-                ->with('hotel:id,nombre,imagen')
+                ->with('hotel:id,nombre,imagen, departamento')
                 ->get()
                 ->pluck('hotel');
 
@@ -75,6 +75,7 @@ class AdminHotelController extends Controller
                 'nombre' => $hotelData['nombre'] ?? null,
                 'descripcion' => $hotelData['descripcion'] ?? null,
                 'direccion' => $hotelData['direccion'] ?? null,
+                'departamento' => $hotelData['departamento'] ?? null,
                 'email' => $hotelData['email'] ?? null,
                 'telefono' => $hotelData['telefono'] ?? null,
                 'telefono2' => $hotelData['telefono2'] ?? null,
@@ -83,13 +84,14 @@ class AdminHotelController extends Controller
             ];
 
             $validator = Validator::make($data, [
-                'nombre' => 'required|string',
-                'descripcion' => 'required|string',
-                'direccion' => 'required|string',
-                'email' => 'required|email',
-                'telefono' => 'required|string',
-                'telefono2' => 'nullable|string',
-                'telefono3' => 'nullable|string',
+                'nombre' => 'required|string|min:3|max:100',
+                'descripcion' => 'required|string|min:10',
+                'direccion' => 'required|string|min:5|max:250',
+                'departamento' => 'required|string|max:25',
+                'email' => 'required|email|max:200',
+                'telefono' => 'required|string|min:8|max:25',
+                'telefono2' => 'nullable|string|min:8|max:25',
+                'telefono3' => 'nullable|string|min:8|max:25',
                 'fecha_asignacion' => 'required|date',
             ]);
 
@@ -117,6 +119,7 @@ class AdminHotelController extends Controller
                 'nombre' => $data['nombre'],
                 'descripcion' => $data['descripcion'],
                 'direccion' => $data['direccion'],
+                'departamento' => $data['departamento'],
                 'imagen' => $imagenPath,
                 'email' => $data['email'],
                 'telefono' => $data['telefono'],
@@ -206,6 +209,7 @@ class AdminHotelController extends Controller
                 'telefono' => ['required', 'string'],
                 'telefono2' => ['nullable', 'string'],
                 'telefono3' => ['nullable', 'string'],
+                'departamento' => ['required', 'string'],
             ]);
 
         try {
@@ -236,6 +240,7 @@ class AdminHotelController extends Controller
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
                 'direccion' => $request->direccion,
+                'departamento' => $request->departamento,
                 'email' => $request->email,
                 'telefono' => $request->telefono,
                 'telefono2' => $request->telefono2,

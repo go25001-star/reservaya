@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pago;
 use Illuminate\Http\Request;
-use Stripe\PaymentIntent;
+use Stripe\Checkout\Session;
 use Stripe\Stripe;
 
 class PaymentController extends Controller
@@ -18,34 +17,34 @@ class PaymentController extends Controller
                 'cantidad' => 'required|numeric|min:1',
             ]);
 
-            Stripe::setApiKey(config('services.stripe.secret'));  // Configurar stripe con las clave secreta
+            Stripe::setApiKey(config('services.stripe.secret'));
 
-            $procesoPago = PaymentIntent::create([
-                'amount' => intval($request->cantidad * 100), // convierte a centavos
-                'currency' => 'usd',
-                'metadata' => [
-                    'reserva_id' => $request->reserva_id,
-                ],
-            ]);
-
-            $pago = Pago::create([
-                'fecha_pago' => now(),
-                'cantidad' => $request->cantidad,
-                'tipo_pago' => 'Tarjeta',
-                'reserva_id' => $request->reserva_id,
+            $session = Session::create([
+                'payment_method_types' => ['card'],
+                'line_items' => [[
+                    'price_data' => [
+                        'currency' => 'usd',
+                        'product_data' => [
+                            'name' => 'Reserva #'.$request->reserva_id,
+                        ],
+                        'unit_amount' => intval($request->cantidad * 100),
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode' => 'payment',
+                'success_url' => 'http://localhost:5173/pago-exitoso?reserva='.$request->reserva_id,
+                'cancel_url' => 'http://localhost:5173/pago-cancelado',
             ]);
 
             return response()->json([
-                'clientSecret' => $procesoPago->client_secret,
-                'pago_id' => $pago?->id,
-                'message' => 'pago creado correctamente'], 201);
+                'url' => $session->url,
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error al guardar el pago',
+                'message' => 'Error al procesar el pago',
                 'error' => $e->getMessage(),
             ], 500);
         }
-
     }
 }

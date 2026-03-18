@@ -20,8 +20,8 @@ class Reserva extends Model
     protected $casts = [
         'total_precio' => 'decimal:2',
         'fecha_reserva' => 'datetime',
-        'fecha_entrada' => 'date',
-        'fecha_salida' => 'date',
+        'fecha_entrada' => 'date:Y-m-d',
+        'fecha_salida' => 'date:Y-m-d',
         'estado' => 'string'//aqui basandome en la base de datos lo canbie por string ya que en la base de datos tiene varchar"50"
     ];
     public function detalles(): HasMany
