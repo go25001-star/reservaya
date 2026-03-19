@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\EstadoReservaEnum;
 use App\Http\Controllers\Controller;
 use App\Models\Reserva;
 use App\Models\StaffHotel;
@@ -100,6 +101,7 @@ class RecepcionistaReservaController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor',
+                'data' => $e -> getMessage()
             ], 500);
         }
 
